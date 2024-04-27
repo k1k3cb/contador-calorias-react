@@ -8,6 +8,13 @@ export type ActivityActions =
   | {
       type: 'set-activeId';
       payload: { id: Activity['id'] };
+    }
+  | {
+      type: 'delete-activity';
+      payload: { id: Activity['id'] };
+    }
+  | {
+      type: 'restart-app';
     };
 
 export interface ActivityState {
@@ -15,8 +22,13 @@ export interface ActivityState {
   activeId: Activity['id'];
 }
 
+const localStorageActivities = (): Activity[] => {
+  const activities = localStorage.getItem('activities');
+  return activities ? JSON.parse(activities) : [];
+};
+
 export const initialState: ActivityState = {
-  activities: [],
+  activities: localStorageActivities(),
   activeId: ''
 };
 
@@ -25,9 +37,20 @@ export const activityReducer = (
   action: ActivityActions
 ) => {
   if (action.type === 'save-activity') {
+    let updatedActivities: Activity[] = [];
+
+    if (state.activeId) {
+      updatedActivities = state.activities.map(activity =>
+        activity.id === state.activeId ? action.payload.newActivity : activity
+      );
+    } else {
+      updatedActivities = [...state.activities, action.payload.newActivity];
+    }
+
     return {
       ...state,
-      activities: [...state.activities, action.payload.newActivity]
+      activities: updatedActivities,
+      activeId: ''
     };
   }
 
@@ -35,6 +58,22 @@ export const activityReducer = (
     return {
       ...state,
       activeId: action.payload.id
+    };
+  }
+
+  if (action.type === 'delete-activity') {
+    return {
+      ...state,
+      activities: state.activities.filter(
+        activity => activity.id !== action.payload.id
+      )
+    };
+  }
+
+  if (action.type === 'restart-app') {
+    return {
+      activities: [],
+      activeId: ''
     };
   }
 
